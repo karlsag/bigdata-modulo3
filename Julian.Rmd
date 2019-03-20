@@ -1,0 +1,154 @@
+---
+title: "Ejercicio_julian"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 4
+    lot: yes
+---
+
+
+
+#*Ejercicio del módulo **tres**. Curso Big Data*
+
+
+####Para poner un enlace:
+[karla](https://big-data-ambiental.netlify.com/r-como-una-plataforma-sig.html)
+
+####Para poner una imagen:
+![murcielago](j.jpg)
+
+
+```{r echo=TRUE, fig.cap="Un murci guapi", message=FALSE, warning=FALSE, out.width="50%", }
+knitr::include_graphics("j.jpg")
+
+```
+
+
+####Haciendo una tabla de manera manual
+
+|Id|nombre|sexo|edad|
+|:-:|:---|---:|:---:|
+|1|karla|femenino|14|
+|2|Amauri|masculino|22|
+
+
+
+```{r}
+#REALMENTE LA CLASE: Para hacer una matriz:
+matriz<-matrix(seq(1,9),nrow=3,ncol=3)
+
+#Para un data frame:
+numeros<-c(1,2,3)
+texto<-c("hola","cómo","estas?")
+booleanos<-c(T,F,T)
+data_frame<-data.frame(numeros, texto,booleanos)
+
+```
+```{r}
+#la misma matriz:
+matriz
+
+#Para seleccionar valores de la matriz:
+matriz[2:3,2:3]
+matriz[c(1,3),c(1,3)]
+matriz>3
+#Para cambiar los valores solo donde es mayor a tres:
+matriz[matriz>3]<-999
+```
+```{r}
+#Instalando el paquete "raster"
+library("raster")
+```
+
+```{r}
+#Haciendo ejercicios con esa paquetería:
+raster_matriz<-raster(matriz)
+plot(raster_matriz)
+
+#Para localizar puntos dentro de raster_matriz que acabamos de crear:
+points(0.25,0.75,pch=21,bg="red",cex=1.4)
+```
+
+
+
+```{r}
+library("rgdal")
+crop1<-raster("C:/Users/Usuario/Documents/Curso Big Data/Semana_3/curso_r_conabio/1crop.tif")
+plot(crop1)
+
+
+crop1<-brick("C:/Users/Usuario/Documents/Curso Big Data/Semana_3/curso_r_conabio/1crop.tif")
+plotRGB(crop1, r=3,g=2,b=1)
+
+#Para saber cuantas bandas tiene:
+nbands(crop1)
+```
+
+Utilizando una función subset() podemos obtener una o más bandas de la imagen multiespectral:
+```{r}
+VIS<-subset(crop1,subset=3)
+NIR<-subset(crop1,subset=5)
+par(mfrow=c(1,2))
+plot(VIS,main="VIS")
+plot(NIR,main="NIR")
+```
+
+Ahora vamos a calcular el ndvi:
+```{r}
+ndvi_1<-(NIR-VIS)/(NIR+VIS)
+plot(ndvi_1)
+
+#Guardar:
+rf<-writeRaster(ndvi_1,filename="C:/Users/Usuario/Documents/Curso Big Data/Semana_3/ndvi1.tif",format="GTiff",overwrite=T)
+
+```
+
+
+
+
+
+Ahora haremos el mismo ejercicio de calcular el ndvi pero de otra imagen
+```{r}
+crop2<-raster("C:/Users/Usuario/Documents/Curso Big Data/Semana_3/curso_r_conabio/2crop.tif")
+plot(crop2)
+
+crop2<-brick("C:/Users/Usuario/Documents/Curso Big Data/Semana_3/curso_r_conabio/2crop.tif")
+plotRGB(crop2, r=3,g=2,b=1)
+
+
+VIS2<-subset(crop2,subset=3)
+NIR2<-subset(crop2,subset=5)
+par(mfrow=c(1,2))
+plot(VIS2,main="VIS2")
+plot(NIR2,main="NIR2")
+
+ndvi_2<-(NIR2-VIS2)/(NIR2+VIS2)
+plot(ndvi_2)
+
+#Guardar:
+rf<-writeRaster(ndvi_2,filename="C:/Users/Usuario/Documents/Curso Big Data/Semana_3/ndvi2.tif",format="GTiff",overwrite=T)
+```
+
+
+
+Para ver las diferencias de NDVI entre las dos imágenes:
+
+```{r}
+D<-ndvi_1-ndvi_2
+plot(D,main="Diferencias en NDVI")
+```
+Hacemos un histograma para ver las diferencias:
+```{r}
+hist(D,breaks=100,main="Diferencias en NDVI",xlab="diferencias",ylab="conteos")
+```
+
+Para fijar los umbrales y ver cuáles son cambios estadísticamente significativos:
+```{r}
+umbral_positivo <- cellStats(D,stat="mean")+ 2*cellStats(D,stat="sd")
+umbral_negativo <- cellStats(D,stat="mean")- 2*cellStats(D,stat="sd")
+D[(D>umbral_negativo) & (D<umbral_positivo)] <-NA 
+
+writeRaster(D, filename="C:/Users/Usuario/Documents/Curso Big Data/Semana_3/Diferencias.tif", format="GTiff", overwrite=TRUE)
+```
+
